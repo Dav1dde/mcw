@@ -46,6 +46,7 @@ def main():
 
     minecraft = cls(config)
     backup = RsyncBackup(minecraft, config['path'], config['backup'])
+    backup.start()
 
     register_signal_handler(minecraft)
 
