@@ -27,6 +27,9 @@ def main():
 
     parser = argparse.ArgumentParser('mcw')
     parser.add_argument(
+        '--backup-delay', type=int, default=600
+    )
+    parser.add_argument(
         'config', type=argparse.FileType('r'), help='Path to configfile'
     )
     parser.add_argument(
@@ -46,7 +49,7 @@ def main():
 
     minecraft = cls(config)
     backup = RsyncBackup(minecraft, config['path'], config['backup'])
-    backup.start()
+    backup.start(ns.backup_delay)
 
     register_signal_handler(minecraft)
 

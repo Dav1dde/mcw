@@ -93,9 +93,13 @@ class RsyncBackup(object):
 
     def create_backup(self, job):
         last = os.path.join(self.dest, 'server')
+        self.minecraft._write('save-all\nsave-off\n')
+        # todo wait for server message instead of this sleep
+        gevent.sleep(5)
         gevent.subprocess.call([
             'rsync', '-a', '--del', '{}/'.format(self.source), last]
         )
+        self.minecraft._write('save-on\nsave-all\n')
 
         now = datetime.now()
         name = '{}.tar'.format(self.get_backup_name(job, now))
