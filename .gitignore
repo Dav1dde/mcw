@@ -1,0 +1,4 @@
+servers.ini
+*.kdev4
+*.pyc
+__pycache__
