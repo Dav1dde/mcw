@@ -1,0 +1,80 @@
+
+
+header {
+    color: #dddddd;
+    background-color: black;
+    background-image: linear-gradient(to bottom, #222, #111);
+    border-bottom: 3px solid #268bd2;
+
+    padding: 13px 20px;
+}
+
+main {
+    padding: 25px 50px;
+
+    margin-left: 205px;
+}
+
+nav {
+  float: left;
+  width: 200px;
+
+  border-right: 2px solid #586e75;
+
+  height: 500px;
+}
+
+nav ul {
+    margin: 0;
+}
+
+nav ul li {
+    padding: 15px 0 15px 15px;
+    margin: 3px 0;
+}
+
+article {
+    margin-bottom: 30px;
+}
+
+article:last-of-type {
+    margin-bottom: 0;
+}
+
+#statusbar {
+    border-bottom: 1px solid gray;
+}
+
+.console {
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 0;
+    border-left: 1px solid gray;
+    border-right: 1px solid gray;
+
+    height: 350px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.console pre {
+    padding: 3px 10px;
+}
+
+.console pre:nth-child(odd) {
+    background-color: white;
+}
+
+article input {
+    margin-top: 15px;
+
+    width: 100%;
+    border: 0;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+article input:focus {
+    outline: none;
+}

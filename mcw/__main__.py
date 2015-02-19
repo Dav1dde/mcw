@@ -62,11 +62,11 @@ def main():
     from gevent.wsgi import WSGIServer
     from mcw.www import create_intstance
 
-    app = create_intstance()
-    app.secret_key = config['secret']
+    app, socketio = create_intstance(config['secret'])
     app.config.password = config['password']
-    server = WSGIServer((config['host'], int(config['port'])), app)
-    server.serve_forever()
+    # server = WSGIServer((config['host'], int(config['port'])), app)
+    # server.serve_forever()
+    socketio.run(app, host=config['host'], port=int(config['port']))
 
 
 if __name__ == '__main__':
