@@ -2,17 +2,23 @@ import gevent
 import gevent.pool
 import gevent.queue
 import gevent.subprocess
+import blinker
 
 import sys
 import shlex
 import signal
 import os.path
+from functools import partial
 from datetime import datetime
 
 from mcw.io import IOPassThrough
 
 
 is_64bits = sys.maxsize > 2**32
+
+on_stdin_message = blinker.Signal()
+on_stdout_message = blinker.Signal()
+on_stderr_message = blinker.Signal()
 
 
 class Minecraft(object):
@@ -63,11 +69,18 @@ class Minecraft(object):
             stderr=gevent.subprocess.PIPE
         )
 
+        def mkcb(signal):
+            def callback(message):
+                signal.send(self, message=message)
+            return callback
+
         # forward stdin, stderr and stdout
-        for src, dest in [(sys.stdin, self._process.stdin),
-                          (self._process.stdout, sys.stdout),
-                          (self._process.stderr, sys.stderr)]:
-            g = IOPassThrough(src, dest)
+        for src, dest, cb in [
+            (sys.stdin, self._process.stdin, mkcb(on_stdin_message)),
+            (self._process.stdout, sys.stdout, mkcb(on_stdout_message)),
+            (self._process.stderr, sys.stderr, mkcb(on_stderr_message))
+        ]:
+            g = IOPassThrough(src, dest, cb)
             self._pool.add(g)
             g.start()
 

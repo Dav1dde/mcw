@@ -2,11 +2,11 @@ from gevent import Greenlet
 import gevent.socket
 
 
-def IOPassThrough(source, dest):
-    return Greenlet(io_pass_through, source, dest)
+def IOPassThrough(source, dest, callback=None):
+    return Greenlet(io_pass_through, source, dest, callback)
 
 
-def io_pass_through(source, dest):
+def io_pass_through(source, dest, callback=None):
     while True:
         gevent.socket.wait_read(source.fileno())
         msg = source.readline()
@@ -16,3 +16,7 @@ def io_pass_through(source, dest):
 
         dest.write(msg)
         dest.flush()
+
+        if callback is not None:
+            callback(msg)
+

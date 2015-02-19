@@ -60,12 +60,15 @@ def main():
     #     gevent.sleep(0.5)
 
     from gevent.wsgi import WSGIServer
-    from mcw.www import create_intstance
+    from mcw.www import create_intstance, MinecraftAppMiddleware
 
     app, socketio = create_intstance(config['secret'])
     app.config.password = config['password']
     # server = WSGIServer((config['host'], int(config['port'])), app)
     # server.serve_forever()
+
+    mw = MinecraftAppMiddleware(minecraft, app, socketio)
+
     socketio.run(app, host=config['host'], port=int(config['port']))
 
 

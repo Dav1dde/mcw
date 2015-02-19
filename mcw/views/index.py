@@ -2,7 +2,7 @@ from flask import (
     Blueprint, request, session, g, render_template,
     url_for, redirect, abort, jsonify, current_app
 )
-from flask.ext.socketio import SocketIO
+from flask.ext.socketio import SocketIO, emit
 
 
 socketio = SocketIO()
@@ -41,5 +41,11 @@ def logout():
         return redirect(url_for('index.site_index'))
 
     return abort(401)
+
+
+@socketio.on('connection')
+def on_new_connection(message):
+    # for some reason this is required or messages won't get sent
+    pass
 
 
