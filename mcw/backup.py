@@ -28,10 +28,14 @@ class RsyncBackup(object):
 
         self._pool = gevent.pool.Pool()
         self._in_backup = False
+        self._processes = list()
 
     @property
     def is_idle(self):
-        return not self._in_backup
+        # all unfinished processes
+        self._processes = [p for p in self._processes if p.poll() is None]
+        # not _in_backup and no process running
+        return not self._in_backup and len(self._processes) == 0
 
     def get_backup_name(self, job, dt=None):
         if dt is None:
@@ -113,7 +117,7 @@ class RsyncBackup(object):
             ['nice', '-n', '19', 'xz', '-e9', name],
             stdout=gevent.subprocess.PIPE, cwd=self.dest
         )
-        p2.communicate()
+        self._processes.append(p2)
 
         return now
 
