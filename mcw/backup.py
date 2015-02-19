@@ -122,7 +122,7 @@ class RsyncBackup(object):
         return now
 
     def remove_old_backups(self, job, past):
-        to_delete = past[:len(past)-job.num]
+        to_delete = past[:max(0, len(past)-job.num)]
 
         for dt in to_delete:
             name = '{}.tar.xz'.format(self.get_backup_name(job, dt))
