@@ -105,7 +105,7 @@ class RsyncBackup(object):
         name = '{}.tar'.format(self.get_backup_name(job, now))
         p1 = gevent.subprocess.Popen(
             ['nice', '-n', '19', 'tar',
-             'cf', name, '-C', self.dest, 'server', '--force-local'],
+             'cf', name, '-C', last, 'world', '--force-local'],
             stdout=gevent.subprocess.PIPE, cwd=self.dest
         )
         p1.communicate()
