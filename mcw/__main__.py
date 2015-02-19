@@ -51,13 +51,22 @@ def main():
     backup = RsyncBackup(minecraft, config['path'], config['backup'])
     backup.start(ns.backup_delay)
 
-    register_signal_handler(minecraft)
+    # register_signal_handler(minecraft)
 
     minecraft.start()
-    minecraft.wait()
+    # minecraft.wait()
     # quit when the last backup is done
-    while not backup.is_idle:
-        gevent.sleep(0.5)
+    # while not backup.is_idle:
+    #     gevent.sleep(0.5)
+
+    from gevent.wsgi import WSGIServer
+    from mcw.www import create_intstance
+
+    app = create_intstance()
+    app.secret_key = config['secret']
+    app.config.password = config['password']
+    server = WSGIServer((config['host'], int(config['port'])), app)
+    server.serve_forever()
 
 
 if __name__ == '__main__':

@@ -62,9 +62,12 @@ class RsyncBackup(object):
         backups = defaultdict(list)
         for backup in sorted(glob.glob(files)):
             name = os.path.split(backup)[1]
-            _, type, date = name.split('-', 2)
-            date = date.split('.', 1)[0]
-            date = datetime.strptime(date, self.FORMAT)
+            try:
+                _, type, date = name.split('-', 2)
+                date = date.split('.', 1)[0]
+                date = datetime.strptime(date, self.FORMAT)
+            except (ValueError, IndexError):
+                continue
             backups[type].append(date)
 
         for job in self.BACKUPS:

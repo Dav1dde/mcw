@@ -1,0 +1,38 @@
+@import url("common.css");
+
+main {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+}
+
+main section header {
+    text-align: center;
+}
+
+main section input {
+    border: 0;
+    border-top: 1px solid lightgray;
+    border-bottom: 1px solid lightgray;
+
+    width: 350px;
+    height: 18pt;
+
+    font-size: 15pt;
+    text-align: center;
+    color: #3a3a3a;
+
+    margin: 20px 0 3px;
+    padding: 2px;
+}
+
+
+main section input:focus{
+    outline: none;
+}
+
+main section footer {
+    color: red;
+}
