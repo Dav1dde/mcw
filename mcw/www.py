@@ -3,6 +3,7 @@ from flask import Flask
 from mcw.minecraft import (
     on_stdin_message, on_stdout_message, on_stderr_message
 )
+from mcw.views.socket import NAMESPACE
 
 from collections import namedtuple
 
@@ -19,19 +20,20 @@ class MinecraftAppMiddleware(object):
     def on_stdout(self, minecraft, message):
         self.socketio.emit('console-message', {
             'message': message, 'type': 'stdout'
-        }, namespace='/console')
+        }, namespace=NAMESPACE)
 
     def on_stderr(self, minecraft, message):
         self.socketio.emit('console-message', {
             'message': message, 'type': 'stderr'
-        }, namespace='/console')
+        }, namespace=NAMESPACE)
 
 
 def create_intstance(secret_key):
     app = Flask(__name__)
     app.secret_key = secret_key
 
-    from mcw.views.index import index, socketio
+    from mcw.views.index import index
+    from mcw.views.socket import socketio
 
     app.register_blueprint(index)
 

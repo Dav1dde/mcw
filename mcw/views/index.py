@@ -2,10 +2,7 @@ from flask import (
     Blueprint, request, session, g, render_template,
     url_for, redirect, abort, jsonify, current_app
 )
-from flask.ext.socketio import SocketIO, emit
 
-
-socketio = SocketIO()
 index = Blueprint('index', __name__)
 
 
@@ -43,10 +40,5 @@ def logout():
     return abort(401)
 
 
-@socketio.on('connect', namespace='/console')
-def on_connect():
-    if not session.get('loggedin', False):
-        return request.namespace.disconnect()
-    emit('welcome', {})
 
 

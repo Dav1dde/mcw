@@ -13,11 +13,9 @@ $(document).ready(function() {
     });
     */
 
-    var socket = io.connect('/console');
+    var socket = io.connect('/main');
     socket.on('error', function() { console.error('Error:', arguments) });
     socket.on('message', function() { console.log('Unhandled message:', arguments) });
-
-    console.log(socket)
 
     socket.on('connect', function() {
         console.log('Connected ...')
