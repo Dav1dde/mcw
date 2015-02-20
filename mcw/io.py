@@ -2,6 +2,7 @@ from gevent import Greenlet
 import gevent.socket
 
 import termios
+import os
 
 
 def IOPassThrough(source, dest, callback=None):
@@ -24,4 +25,6 @@ def io_pass_through(source, dest, callback=None):
 
 
 def flush_fd(fd):
-    termios.tcflush(fd, termios.TCIOFLUSH)
+    if os.isatty(fd.fileno()):
+        termios.tcflush(fd, termios.TCIOFLUSH)
+
