@@ -1,0 +1,2 @@
+recursive-include mcw/templates *
+recursive-include mcw/static *

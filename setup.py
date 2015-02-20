@@ -9,8 +9,13 @@ if __name__ == '__main__':
         name='mcw',
         version='0.1.0a0',
         packages=find_packages(),
+        include_package_data=True,
+        zip_safe=False,
         install_requires=[
-            'gevent'
+            'gevent',
+            'flask',
+            'flask-socketio',
+            'blinker'
         ],
         entry_points={
             'console_scripts': [
