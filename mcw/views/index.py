@@ -43,9 +43,10 @@ def logout():
     return abort(401)
 
 
-@socketio.on('connection')
-def on_new_connection(message):
-    # for some reason this is required or messages won't get sent
-    pass
+@socketio.on('connect', namespace='/console')
+def on_connect():
+    if not session.get('loggedin', False):
+        return request.namespace.disconnect()
+    emit('welcome', {})
 
 

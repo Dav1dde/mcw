@@ -17,14 +17,14 @@ class MinecraftAppMiddleware(object):
         on_stderr_message.connect(self.on_stderr, sender=self.minecraft)
 
     def on_stdout(self, minecraft, message):
-        self.socketio.emit('cm', {
+        self.socketio.emit('console-message', {
             'message': message, 'type': 'stdout'
-        })
+        }, namespace='/console')
 
     def on_stderr(self, minecraft, message):
-        self.socketio.emit('cm', {
+        self.socketio.emit('console-message', {
             'message': message, 'type': 'stderr'
-        })
+        }, namespace='/console')
 
 
 def create_intstance(secret_key):
