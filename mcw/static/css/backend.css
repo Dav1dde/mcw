@@ -41,8 +41,19 @@ article:last-of-type {
     margin-bottom: 0;
 }
 
-#statusbar {
+.statusbar {
     border-bottom: 1px solid gray;
+    margin-bottom: 50px;
+    line-height: 35px;
+}
+
+.statusbar p {
+    float: left;
+    margin-right: 10px;
+}
+
+.statusbar .label {
+    margin: 0 3px;
 }
 
 .console {
@@ -53,6 +64,7 @@ article:last-of-type {
     border-right: 1px solid gray;
 
     height: 350px;
+    max-height: 500px;
 
     overflow-y: auto;
     overflow-x: hidden;
@@ -73,6 +85,7 @@ article input {
     border: 0;
     border-top: 1px solid gray;
     border-bottom: 1px solid gray;
+    padding: 2px 5px;
 }
 
 article input:focus {

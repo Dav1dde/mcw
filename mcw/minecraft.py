@@ -2,7 +2,6 @@ import gevent
 import gevent.pool
 import gevent.queue
 import gevent.subprocess
-import blinker
 
 import sys
 import shlex
@@ -12,13 +11,13 @@ from functools import partial
 from datetime import datetime
 
 from mcw.io import IOPassThrough
+from mcw.signals import (
+    on_started, on_stopped,
+    on_stdin_message, on_stdout_message, on_stderr_message
+)
 
 
 is_64bits = sys.maxsize > 2**32
-
-on_stdin_message = blinker.Signal()
-on_stdout_message = blinker.Signal()
-on_stderr_message = blinker.Signal()
 
 
 class Minecraft(object):
@@ -68,6 +67,13 @@ class Minecraft(object):
             stdin=gevent.subprocess.PIPE, stdout=gevent.subprocess.PIPE,
             stderr=gevent.subprocess.PIPE
         )
+
+        on_started.send(self)
+
+        def stop_event_g():
+            self._process.wait()
+            on_stopped.send(self)
+        self._pool.spawn(stop_event_g)
 
         def mkcb(signal):
             def callback(message):
