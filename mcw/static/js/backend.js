@@ -35,6 +35,14 @@ function setServerStatus(data) {
     }
 }
 
+function setStatusInfo(data) {
+    if (data.info && typeof data.info.players != 'undefined') {
+        $('.status-player').setStatus('success', data.info.players.online + '/' + data.info.players.max)
+    } else {
+        $('.status-player').setStatus('warning', '?/?')
+    }
+}
+
 $(document).ready(function() {
     /*
     $('.console').resizable({
@@ -46,6 +54,7 @@ $(document).ready(function() {
     */
 
     var socket = io.connect('/main');
+    console.log(socket)
     socket.on('error', function() {
         console.error('Error:', arguments)
         $('.status-webpanel').setStatus('warning', 'Errors Occured')
@@ -60,6 +69,7 @@ $(document).ready(function() {
 
     socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
     socket.on('server-state', setServerStatus)
+    socket.on('status-info', setStatusInfo)
     socket.on('console-message', function(data) {
         var color = data.type == 'stderr' ? 'red' : ''
 
@@ -81,5 +91,12 @@ $(document).ready(function() {
         }
     })
 
+    function _request_server_info() {
+        if (socket.socket.connected) {
+            socket.emit('request-server-info', {})
+        }
 
+        setTimeout(_request_server_info, 15000)
+    }
+    setTimeout(_request_server_info, 15000)
 })

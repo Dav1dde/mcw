@@ -6,6 +6,9 @@ from mcw.signals import (
     on_stdin_message, on_stdout_message, on_stderr_message
 )
 
+import time
+import gevent
+
 
 class MinecraftAppMiddleware(object):
     def __init__(self, minecraft, app, socketio, namespace='/main'):
@@ -13,6 +16,8 @@ class MinecraftAppMiddleware(object):
         self.app = app
         self.socketio = socketio
         self.namespace = namespace
+
+        self._info = (self.minecraft.info, time.time())
 
         socketio._on_message('connect', self.on_connect, namespace=namespace)
         socketio._on_message('command', self.on_command, namespace=namespace)
@@ -24,6 +29,9 @@ class MinecraftAppMiddleware(object):
         )
         socketio._on_message(
             'server-restart', self.on_server_restart, namespace=namespace
+        )
+        socketio._on_message(
+            'request-server-info', self.on_request_si, namespace=namespace
         )
 
         on_starting.connect(self.on_state_change, sender=self.minecraft)
@@ -39,6 +47,7 @@ class MinecraftAppMiddleware(object):
 
         self.socketio.emit('welcome',  {}, namespace=self.namespace)
         self.send_server_state()
+        self.send_server_info()
 
     def on_command(self, message):
         command = message.get('command')
@@ -62,13 +71,24 @@ class MinecraftAppMiddleware(object):
             return
 
         def restart(minecraft):
-            print '----------------------------------------->'
+            gevent.sleep(1)
             if not minecraft.is_running:
                 minecraft.start()
             on_stopped.disconnect(restart, sender=minecraft)
         on_stopped.connect(restart, sender=self.minecraft)
 
         self.minecraft.stop()
+
+    def send_server_info(self):
+        if self._info[1] + 15 < time.time() or self._info[0] is None:
+            self._info = (self.minecraft.info, time.time())
+
+        self.socketio.emit('status-info', {
+            'info': self._info[0]
+        }, namespace=self.namespace)
+
+    def on_request_si(self, message):
+        self.send_server_info()
 
     def send_server_state(self):
         self.socketio.emit('server-state',  {
@@ -77,6 +97,7 @@ class MinecraftAppMiddleware(object):
 
     def on_state_change(self, minecraft):
         self.send_server_state()
+        self.send_server_info()
 
     def on_stdout(self, minecraft, message):
         self.socketio.emit('console-message', {

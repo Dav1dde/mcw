@@ -16,7 +16,8 @@ from mcw.signals import (
     on_starting, on_started, on_stopping, on_stopped,
     on_stdin_message, on_stdout_message, on_stderr_message
 )
-
+import mcw.minecraft.local
+import mcw.minecraft.query
 
 is_64bits = sys.maxsize > 2**32
 
@@ -34,6 +35,7 @@ class Minecraft(object):
     def __init__(self, config):
         self.config = config
 
+        self._server_properties = None
         self._process = None
         self._pool = gevent.pool.Group()
         self._message_queue = gevent.queue.Queue()
@@ -54,6 +56,29 @@ class Minecraft(object):
         elif _SERVER_STOP_RE.match(message):
             self._state = 'stopping'
             on_stopping.send(self)
+
+    @property
+    def server_properties(self):
+        if self._server_properties is None:
+            self._server_properties = \
+                mcw.minecraft.local.server_properties(self.config['path'])
+
+        return self._server_properties
+
+    @property
+    def ip(self):
+        ip = self.server_properties['server-ip']
+        return ip if ip else '127.0.0.1'
+
+    @property
+    def port(self):
+        return self.server_properties['server-port']
+
+    @property
+    def info(self):
+        if not self.state == 'started':
+            return None
+        return mcw.minecraft.query.get_info(self.ip, self.port)
 
     @property
     def arguments(self):
@@ -89,7 +114,7 @@ class Minecraft(object):
         # clear stdin, so process doesn't get leftover commands
         flush_fd(sys.stdin)
         self._process = gevent.subprocess.Popen(
-            cmd, cwd=self.config.get('path'), universal_newlines=True,
+            cmd, cwd=self.config['path'], universal_newlines=True,
             stdin=gevent.subprocess.PIPE, stdout=gevent.subprocess.PIPE,
             stderr=gevent.subprocess.PIPE
         )

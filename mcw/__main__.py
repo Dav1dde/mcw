@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-from mcw.minecraft import Minecraft, Spigot, FTB
+from mcw.minecraft.server import Minecraft, Spigot, FTB
 from mcw.backup import RsyncBackup
 
 import signal
