@@ -1,6 +1,8 @@
 from gevent import Greenlet
 import gevent.socket
 
+import termios
+
 
 def IOPassThrough(source, dest, callback=None):
     return Greenlet(io_pass_through, source, dest, callback)
@@ -20,3 +22,6 @@ def io_pass_through(source, dest, callback=None):
         if callback is not None:
             callback(msg)
 
+
+def flush_fd(fd):
+    termios.tcflush(fd, termios.TCIOFLUSH)

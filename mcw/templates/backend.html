@@ -4,7 +4,7 @@
         {% block head %}
             <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-            <title>{% block title %}[MCW] Login{% endblock %}</title>
+            <title>{% block title %}[MCW] Admin Panel{% endblock %}</title>
             <script src="/static/js/jquery-1.11.2.min.js"></script>
             <script src="/static/js/socket.io.min.js"></script>
             <script src="/static/js/backend.js"></script>
@@ -29,6 +29,12 @@
 
 
             <main>
+                <article class="statusbar">
+                    <p class=".form-control-static">Status:</p>
+                    <label class="label label-warning status-webpanel">Webpanel: <span class="status">Unknown</span></label>
+                    <label class="label label-warning status-server">Server: <span class="status">Unknown</span></label>
+                </article>
+
                 {% for id, name, template in menus %}
                 <section id="{{ id }}">{% include template %}</section>
                 {% endfor %}

@@ -7,7 +7,7 @@ index = Blueprint('index', __name__)
 
 
 MENUS = [
-    ('status', 'Status', 'status.html')
+    ('server', 'Server', 'status.html')
 ]
 
 @index.route('/')

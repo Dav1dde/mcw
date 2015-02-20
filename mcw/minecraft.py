@@ -3,6 +3,7 @@ import gevent.pool
 import gevent.queue
 import gevent.subprocess
 
+import re
 import sys
 import shlex
 import signal
@@ -10,14 +11,23 @@ import os.path
 from functools import partial
 from datetime import datetime
 
-from mcw.io import IOPassThrough
+from mcw.io import IOPassThrough, flush_fd
 from mcw.signals import (
-    on_started, on_stopped,
+    on_starting, on_started, on_stopping, on_stopped,
     on_stdin_message, on_stdout_message, on_stderr_message
 )
 
 
 is_64bits = sys.maxsize > 2**32
+
+
+_SERVER_STOP_RE = re.compile(
+    r'^\[\d{2}:\d{2}:\d{2}\] \[Server thread/INFO\]: Stopping the server$'
+)
+_SERVER_START_RE = re.compile(
+    r'^\[\d{2}:\d{2}:\d{2}\] \[Server thread/INFO\]: Done \(\d+[.,]\d+\w\)!'
+    r' For help, type "help" or "\?"$'
+)
 
 
 class Minecraft(object):
@@ -28,12 +38,22 @@ class Minecraft(object):
         self._pool = gevent.pool.Group()
         self._message_queue = gevent.queue.Queue()
 
-    def _write(self, msg):
+        on_stdout_message.connect(self._on_stdout, sender=self)
+
+    def _write(self, message):
         if self.is_running:
-            self._process.stdin.write(msg)
+            self._process.stdin.write(message)
             self._process.stdin.flush()
             return True
         return False
+
+    def _on_stdout(self, _, message):
+        if _SERVER_START_RE.match(message):
+            self._state = 'started'
+            on_started.send(self)
+        elif _SERVER_STOP_RE.match(message):
+            self._state = 'stopping'
+            on_stopping.send(self)
 
     @property
     def arguments(self):
@@ -54,6 +74,10 @@ class Minecraft(object):
     def is_running(self):
         return self._process is not None and self._process.poll() is None
 
+    @property
+    def state(self):
+        return self._state
+
     def start(self):
         if self.is_running:
             raise ValueError("Server already running")
@@ -62,17 +86,21 @@ class Minecraft(object):
         cmd.insert(0, self.config['java'])
         cmd.extend(['-jar', self.config['jar'], 'nogui'])
 
+        # clear stdin, so process doesn't get leftover commands
+        flush_fd(sys.stdin)
         self._process = gevent.subprocess.Popen(
             cmd, cwd=self.config.get('path'), universal_newlines=True,
             stdin=gevent.subprocess.PIPE, stdout=gevent.subprocess.PIPE,
             stderr=gevent.subprocess.PIPE
         )
-
-        on_started.send(self)
+        self._state = 'starting'
+        on_starting.send(self)
 
         def stop_event_g():
             self._process.wait()
+            self._state = 'stopped'
             on_stopped.send(self)
+            self._pool.kill()
         self._pool.spawn(stop_event_g)
 
         def mkcb(signal):
@@ -91,6 +119,11 @@ class Minecraft(object):
             g.start()
 
     def stop(self):
+        if not self.state == 'started':
+            if self.state == 'starting':
+                raise ValueError('Minecraft server ist starting')
+            raise ValueError('Minecraft server is not started')
+
         self._write('stop\n')
 
     def wait(self):

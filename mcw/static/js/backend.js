@@ -17,12 +17,21 @@ jQuery.fn.extend({
 })
 
 function setServerStatus(data) {
-    if (data.server_state == 'running') {
+    if (data.server_state == 'started') {
         $('.status-server').setStatus('success', 'Running')
+        $('.server-start').prop('disabled', true)
+        $('.server-stop').prop('disabled', false)
+        $('.server-restart').prop('disabled', false)
     } else if (data.server_state == 'stopped') {
         $('.status-server').setStatus('danger', 'Stopped')
+        $('.server-start').prop('disabled', false)
+        $('.server-stop').prop('disabled', true)
+        $('.server-restart').prop('disabled', true)
     } else {
         $('.status-server').setStatus('warning', data.server_state.capitalize())
+        $('.server-start').prop('disabled', true)
+        $('.server-stop').prop('disabled', true)
+        $('.server-restart').prop('disabled', true)
     }
 }
 
@@ -49,26 +58,21 @@ $(document).ready(function() {
     socket.on('reconnect_failed', function() { $('.status-webpanel').setStatus('danger',  'Reconnecting Failed') })
     socket.on('disconnect',       function() { $('.status-webpanel').setStatus('danger',  'Disconnected')        })
 
-    socket.on('welcome', function(data) {
-        $('.status-webpanel').setStatus('success', 'Connected')
-        setServerStatus(data)
-    });
+    socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
     socket.on('server-state', setServerStatus)
     socket.on('console-message', function(data) {
-        console.log(data)
-        var color = ''
-        if (data.type == 'stderr') {
-            color = 'red'
-        }
+        var color = data.type == 'stderr' ? 'red' : ''
 
         var atBottom = isAtBottom('.console');
-
         $('.console').append($('<pre>').text(data.message).css('color', color))
         if (atBottom) {
             $('.console').scrollTop($('.console')[0].scrollHeight)
         }
     });
 
+    $('.server-start').click(function() { socket.emit('server-start', {}) })
+    $('.server-stop').click(function() { socket.emit('server-stop', {}) })
+    $('.server-restart').click(function() { socket.emit('server-restart', {}) })
 
     $('.command-input').keyup(function(event) {
         if (event.keyCode == 13) {  // enter
