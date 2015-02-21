@@ -15,7 +15,8 @@ if __name__ == '__main__':
             'gevent',
             'flask',
             'flask-socketio',
-            'blinker'
+            'blinker',
+            'psutil'
         ],
         entry_points={
             'console_scripts': [

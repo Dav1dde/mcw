@@ -2,6 +2,7 @@ import gevent
 import gevent.pool
 import gevent.queue
 import gevent.subprocess
+import psutil
 
 import re
 import sys
@@ -37,6 +38,7 @@ class Minecraft(object):
 
         self._server_properties = None
         self._process = None
+        self._psutil_process = None
         self._pool = gevent.pool.Group()
         self._message_queue = gevent.queue.Queue()
 
@@ -81,6 +83,10 @@ class Minecraft(object):
         return mcw.minecraft.query.get_info(self.ip, self.port)
 
     @property
+    def process(self):
+        return self._psutil_process
+
+    @property
     def arguments(self):
         m = [
             '-server',
@@ -118,11 +124,13 @@ class Minecraft(object):
             stdin=gevent.subprocess.PIPE, stdout=gevent.subprocess.PIPE,
             stderr=gevent.subprocess.PIPE
         )
+        self._psutil_process = psutil.Process(self._process.pid)
         self._state = 'starting'
         on_starting.send(self)
 
         def stop_event_g():
             self._process.wait()
+            self._psutil_process = None
             self._state = 'stopped'
             on_stopped.send(self)
             self._pool.kill()

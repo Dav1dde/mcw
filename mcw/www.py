@@ -8,6 +8,7 @@ from mcw.signals import (
 
 import time
 import gevent
+import gevent.pool
 
 
 class MinecraftAppMiddleware(object):
@@ -38,6 +39,24 @@ class MinecraftAppMiddleware(object):
         on_stdout_message.connect(self.on_stdout, sender=self.minecraft)
         on_stderr_message.connect(self.on_stderr, sender=self.minecraft)
 
+        self._pool = gevent.pool.Pool()
+        self._pool.spawn(self._process_info_worker)
+
+    def _process_info_worker(self):
+        while True:
+            cpu = 0
+            memory = 0
+
+            if self.minecraft.process is not None:
+                cpu = self.minecraft.process.cpu_percent()
+                memory = self.minecraft.process.memory_info()[0]
+
+            self.socketio.emit('process-info', {
+                'cpu': cpu, 'memory': memory
+            }, namespace=self.namespace)
+
+            gevent.sleep(1.0)
+
     def on_connect(self):
         if not session.get('loggedin', False):
             return request.namespace.disconnect()
@@ -67,16 +86,21 @@ class MinecraftAppMiddleware(object):
         if self._info[1] + 15 < time.time() or self._info[0] is None:
             self._info = (self.minecraft.info, time.time())
 
-        self.socketio.emit('status-info', {
-            'info': self._info[0]
+        self.socketio.emit('server-info', {
+            'info': self._info[0],
         }, namespace=self.namespace)
 
     def on_request_si(self, message):
         self.send_server_info()
 
     def send_server_state(self):
+        start_time = self.minecraft.process
+        if start_time is not None:
+            start_time = start_time.create_time()
+
         self.socketio.emit('server-state',  {
-            'server_state': self.minecraft.state
+            'state': self.minecraft.state,
+            'start_time': start_time
         }, namespace=self.namespace)
 
     def on_state_change(self, minecraft):

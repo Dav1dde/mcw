@@ -7,6 +7,7 @@ index = Blueprint('index', __name__)
 
 
 MENUS = [
+    ('overview', 'Overview', 'overview.html'),
     ('console', 'Console', 'console.html')
 ]
 
@@ -15,7 +16,7 @@ def site_index():
     if not session.get('loggedin', False):
         return render_template('login.html')
 
-    return render_template('backend.html', menus=MENUS, default='status')
+    return render_template('backend.html', menus=MENUS, default='overview')
 
 
 @index.route('/login', methods=['POST'])

@@ -15,6 +15,14 @@ main {
     margin-left: 205px;
 }
 
+main section {
+    display: none;
+}
+
+main section.active {
+    display: block !important;
+}
+
 nav {
   float: left;
   width: 200px;
@@ -91,4 +99,9 @@ article input {
 
 article input:focus {
     outline: none;
+}
+
+#cpu-graph, #memory-graph {
+    height: 200px;
+    width: 100%;
 }

@@ -7,9 +7,12 @@
             <title>{% block title %}[MCW] Admin Panel{% endblock %}</title>
             <script src="/static/js/jquery-1.11.2.min.js"></script>
             <script src="/static/js/socket.io.min.js"></script>
+            <script src="/static/js/d3.min.js"></script>
+            <script src="/static/js/epoch.min.js"></script>
             <script src="/static/js/backend.js"></script>
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
             <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+            <link rel="stylesheet" href="/static/css/epoch.min.css">
             <link rel="stylesheet" href="/static/css/common.css">
             <link rel="stylesheet" href="/static/css/backend.css">
         {% endblock %}
@@ -22,7 +25,7 @@
             <nav>
                 <ul>
                     {% for id, name, template in menus %}
-                    <li>{{ name }}</li>
+                    <li class="{{ 'active' if id==default }}"><a href="#{{ id }}">{{ name }}</a></li>
                     {% endfor %}
                 </ul>
             </nav>
@@ -33,11 +36,12 @@
                     <p class=".form-control-static">Status:</p>
                     <label class="label label-warning status-webpanel">Webpanel: <span class="status">Unknown</span></label>
                     <label class="label label-warning status-server">Server: <span class="status">Unknown</span></label>
+                    <label class="label label-warning status-uptime">Uptime: <span class="status">?</span></label>
                     <label class="label label-warning status-player">Player: <span class="status">?/?</span></label>
                 </article>
 
                 {% for id, name, template in menus %}
-                <section id="{{ id }}">{% include template %}</section>
+                <section id="{{ id }}" class="{{ 'active' if id==default }}">{% include template %}</section>
                 {% endfor %}
             </main>
     </body>
