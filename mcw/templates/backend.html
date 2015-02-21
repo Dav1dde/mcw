@@ -41,7 +41,7 @@
                 </article>
 
                 {% for id, name, template in menus %}
-                <section id="{{ id }}" class="{{ 'active' if id==default }}">{% include template %}</section>
+                <section id="{{ id }}_inner">{% include template %}</section>
                 {% endfor %}
             </main>
     </body>

@@ -102,10 +102,6 @@ function setServerInfo(data) {
     }
 }
 
-function reconnectOnStatus(socket, data) {
-
-}
-
 $(document).ready(function() {
     /*
     $('.console').resizable({
@@ -143,29 +139,29 @@ $(document).ready(function() {
         }
     });
 
-    var now = Date.now() / 1000
+    var now = Date.now() / 1000;
 
-    var cpu_chart
-    var memory_chart
+    var cpu_chart;
+    var memory_chart;
+    function createCharts() {
+        function _createCharts() {
+            var OPTIONS = {
+                type: 'time.line',
+                data: genHistory(1, 1, Date.now() / 1000),
+                axes: ['left', 'bottom', 'right'],
+                windowSize: 100,
+                queueSize: 100,
+                ticks: { time: 15, left: 5, right: 10}
+            }
 
-    setTimeout(function() {
-        cpu_chart = $('#cpu-graph').epoch({
-            type: 'time.line',
-            data: genHistory(1, 1, Date.now() / 1000),
-            axes: ['left', 'bottom', 'right'],
-            windowSize: 100,
-            queueSize: 100,
-            ticks: { time: 15, left: 5, right: 10}
-        })
-        memory_chart = $('#memory-graph').epoch({
-            type: 'time.line',
-            data: genHistory(1, 1, Date.now() / 1000),
-            axes: ['left', 'bottom', 'right'],
-            windowSize: 100,
-            queueSize: 100,
-            ticks: { time: 15, left: 5, right: 10}
-        })
-    }, 1000);
+            cpu_chart = $('#cpu-graph').epoch(OPTIONS)
+            memory_chart = $('#memory-graph').epoch(OPTIONS)
+        }
+
+        setTimeout(_createCharts, 500)
+        $('body > nav > ul > li > a[href="#overview"]').unbind('click', createCharts)
+    }
+    $('body > nav > ul > li > a[href="#overview"]').click(createCharts)
 
     socket.on('server-info', function(data) {
         if (!memory_chart || !cpu_chart) return;
@@ -196,16 +192,22 @@ $(document).ready(function() {
         socket.emit('server-stop', {})
     })
 
-    $('nav li').click(function() {
-        if ($(this).hasClass('active')) {
-            return
-        }
-
-        var id = $(this).find('a').attr('href')
-        $('nav li').removeClass('active')
-        $(this).addClass('active')
+    $('body > nav > ul > li > a').click(function(event) {
+        var id = $(this).attr('href')
+        $('body > nav > ul > li').removeClass('active')
+        $(this).parent().addClass('active')
         $('main > section').removeClass('active')
-        $(id).addClass('active')
+        $(id + '_inner').addClass('active')
+    })
+
+    if (location.hash) {
+        $('body > nav > ul > li > a[href="' + location.hash + '"]').click()
+    } else {
+        $('body > nav > ul > li.active > a').click()
+    }
+
+    $(window).on('hashchange', function() {
+        window.scrollTo(0, 0);
     })
 
     $('.command-input').keyup(function(event) {
@@ -220,6 +222,10 @@ $(document).ready(function() {
             socket.emit('request-server-info', {})
         }
     }, 1000)
-
     setInterval(updateUptime, 30000)
+    if (location.hash) {
+        setTimeout(function() {
+            window.scrollTo(0, 0);
+    }, 1);
+}
 })
