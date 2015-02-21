@@ -112,6 +112,12 @@ $(document).ready(function() {
     });
     */
 
+    function resize() {
+        $('body > nav').css('height', $(window).height()-100 + 'px');
+    }
+    $(window).resize(resize);
+    resize();
+
     var socket = io.connect('/main');
 
     socket.on('error', function() {
@@ -120,11 +126,11 @@ $(document).ready(function() {
     });
     socket.on('message', function() { console.log('Unhandled message:', arguments) });
 
-    socket.on('connecting',       function() { $('.status-webpanel').setStatus('warning', 'Connecting')          })
-    socket.on('reconnecting',     function() { $('.status-webpanel').setStatus('warning', 'Reconnecting')        })
-    socket.on('connect_failed',   function() { $('.status-webpanel').setStatus('danger',  'Connection Failed')   })
-    socket.on('reconnect_failed', function() { $('.status-webpanel').setStatus('danger',  'Reconnecting Failed') })
-    socket.on('disconnect',       function() { $('.status-webpanel').setStatus('danger',  'Disconnected')        })
+    socket.on('connecting',       function() { $('.status-webpanel').setStatus('danger', 'Connecting')          })
+    socket.on('reconnecting',     function() { $('.status-webpanel').setStatus('danger', 'Reconnecting')        })
+    socket.on('connect_failed',   function() { $('.status-webpanel').setStatus('danger', 'Connection Failed')   })
+    socket.on('reconnect_failed', function() { $('.status-webpanel').setStatus('danger', 'Reconnecting Failed') })
+    socket.on('disconnect',       function() { $('.status-webpanel').setStatus('danger', 'Disconnected')        })
 
     socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
     socket.on('server-state', setServerState)
@@ -209,6 +215,17 @@ $(document).ready(function() {
     $(window).on('hashchange', function() {
         window.scrollTo(0, 0);
     })
+
+    var was_at_bottom = true;
+    $('body > nav > ul > li > a[href="#console"]').click(function() {
+        if ($('.console').data('bottom')) {
+            setTimeout(function() {$('.console').scrollTop($('.console')[0].scrollHeight)}, 10)
+        }
+    })
+    $('.console').scroll(function() {
+        $(this).data('bottom', isAtBottom('.console'))
+    })
+    $('.console').data('bottom', true)
 
     $('.command-input').keyup(function(event) {
         if (event.keyCode == 13) {  // enter

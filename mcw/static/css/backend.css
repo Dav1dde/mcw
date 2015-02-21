@@ -9,6 +9,22 @@ header {
     padding: 13px 20px;
 }
 
+header nav {
+    text-align: right;
+    margin-right: 20px;
+    color: #dddddd;
+    display: inline;
+    float: right;
+}
+
+header > nav a {
+    color: #dddddd;
+}
+
+header > nav a:hover {
+    color: #dddddd;
+}
+
 main {
     padding: 25px 50px;
 
@@ -23,22 +39,33 @@ main section.active {
     display: block !important;
 }
 
-nav {
+body > nav {
   float: left;
   width: 200px;
+  margin-top: 10px;
 
   border-right: 2px solid #586e75;
-
-  height: 500px;
 }
 
-nav ul {
+body > nav > ul {
     margin: 0;
 }
 
-nav ul li {
-    padding: 15px 0 15px 15px;
+body > nav > ul > li {
+    padding: 15px 0 15px 25px;
     margin: 3px 0;
+}
+
+body > nav a:focus {
+    text-decoration: none;
+}
+
+body > nav a > i {
+    color: #111;
+}
+
+body > nav > ul > li.active {
+    color: red;
 }
 
 article {

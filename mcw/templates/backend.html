@@ -19,13 +19,20 @@
     </head>
     <body>
         <header>
-            MCW Admin Panel
+            <nav>
+                <i class="fa fa-sign-out"></i>
+                <a href="{{ url_for('index.logout') }}">Logout</a>
+            </nav>
+            <div>MCW Admin Panel</div>
         </header>
 
             <nav>
                 <ul>
-                    {% for id, name, template in menus %}
-                    <li class="{{ 'active' if id==default }}"><a href="#{{ id }}">{{ name }}</a></li>
+                    {% for id, name, icon, template in menus %}
+                    <li class="{{ 'active' if id==default }}">
+                        {% if icon %}<i class="{{ icon }}"></i>&nbsp;&nbsp;{% endif %}
+                        <a href="#{{ id }}">{{ name }}</a>
+                    </li>
                     {% endfor %}
                 </ul>
             </nav>
@@ -40,7 +47,7 @@
                     <label class="label label-warning status-player">Player: <span class="status">?/?</span></label>
                 </article>
 
-                {% for id, name, template in menus %}
+                {% for id, name, icon, template in menus %}
                 <section id="{{ id }}_inner">{% include template %}</section>
                 {% endfor %}
             </main>
