@@ -9,6 +9,10 @@ String.prototype.capitalize = function() {
 
 jQuery.fn.extend({
     setStatus: function(type, text) {
+        if (typeof text == 'undefined') {
+            text = this.children('.status').text()
+        }
+
         this.children('.status').text(text)
         return this.removeClass(
             'label-default label-primary label-success label-info label-warning label-danger'
@@ -67,6 +71,9 @@ function updateUptime() {
 
 
 function setServerState(data) {
+    $('.status-uptime').data('time', (data.start_time || 0)*1000)
+    updateUptime()
+
     if (data.state == 'started') {
         $('.status-server').setStatus('success', 'Running')
         $('.server-start').prop('disabled', true)
@@ -77,15 +84,14 @@ function setServerState(data) {
         $('.server-start').prop('disabled', false)
         $('.server-stop').prop('disabled', true)
         $('.server-restart').prop('disabled', true)
+
+        $('.status-uptime').setStatus('warning')
     } else {
         $('.status-server').setStatus('warning', data.state.capitalize())
         $('.server-start').prop('disabled', true)
         $('.server-stop').prop('disabled', true)
         $('.server-restart').prop('disabled', true)
     }
-
-    $('.status-uptime').data('time', (data.start_time || 0)*1000)
-    updateUptime()
 }
 
 function setServerInfo(data) {

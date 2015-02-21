@@ -70,7 +70,6 @@ class MinecraftAppMiddleware(object):
         cpu = 0
         memory = 0
         if self.minecraft.process is not None:
-            print 'update'
             cpu = self.minecraft.process.cpu_percent()
             memory = self.minecraft.process.memory_info()[0]
 
