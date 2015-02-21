@@ -64,7 +64,7 @@ article {
     border-left: 1px solid gray;
     border-right: 1px solid gray;
 
-    height: 350px;
+    min-height: 350px;
     max-height: 500px;
 
     overflow-y: auto;

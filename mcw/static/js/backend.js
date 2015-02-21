@@ -35,6 +35,21 @@ function setServerStatus(data) {
     }
 }
 
+function reconnectOnStatus(socket, data) {
+    if (data.server_state == 'stopped') {
+        setTimeout(function() {
+            data.server_state = 'Restarting'
+            setServerStatus(data)
+        }, 10);
+
+        setTimeout(function() {
+            socket.emit('server-start', {})
+        }, 1000)
+
+        socket.removeListener('server-state', reconnectOnStatus)
+    }
+}
+
 function setStatusInfo(data) {
     if (data.info && typeof data.info.players != 'undefined') {
         $('.status-player').setStatus('success', data.info.players.online + '/' + data.info.players.max)
@@ -82,7 +97,10 @@ $(document).ready(function() {
 
     $('.server-start').click(function() { socket.emit('server-start', {}) })
     $('.server-stop').click(function() { socket.emit('server-stop', {}) })
-    $('.server-restart').click(function() { socket.emit('server-restart', {}) })
+    $('.server-restart').click(function() {
+        socket.emit('server-stop', {})
+        socket.on('server-state', function(data) { reconnectOnStatus(socket, data); })
+    })
 
     $('.command-input').keyup(function(event) {
         if (event.keyCode == 13) {  // enter

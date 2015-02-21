@@ -28,9 +28,6 @@ class MinecraftAppMiddleware(object):
             'server-stop', self.on_server_stop, namespace=namespace
         )
         socketio._on_message(
-            'server-restart', self.on_server_restart, namespace=namespace
-        )
-        socketio._on_message(
             'request-server-info', self.on_request_si, namespace=namespace
         )
 
@@ -63,19 +60,6 @@ class MinecraftAppMiddleware(object):
     def on_server_stop(self, message):
         if not self.minecraft.is_running:
             return
-
-        self.minecraft.stop()
-
-    def on_server_restart(self, message):
-        if not self.minecraft.is_running:
-            return
-
-        def restart(minecraft):
-            gevent.sleep(1)
-            if not minecraft.is_running:
-                minecraft.start()
-            on_stopped.disconnect(restart, sender=minecraft)
-        on_stopped.connect(restart, sender=self.minecraft)
 
         self.minecraft.stop()
 
