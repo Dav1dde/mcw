@@ -97,18 +97,7 @@ function setServerInfo(data) {
 }
 
 function reconnectOnStatus(socket, data) {
-    if (data.state == 'stopped') {
-        setTimeout(function() {
-            data.state = 'Restarting'
-            setServerState(data)
-        }, 10);
 
-        setTimeout(function() {
-            socket.emit('server-start', {})
-        }, 1000)
-
-        socket.removeListener('server-state', reconnectOnStatus)
-    }
 }
 
 $(document).ready(function() {
@@ -122,7 +111,7 @@ $(document).ready(function() {
     */
 
     var socket = io.connect('/main');
-    console.log(socket)
+
     socket.on('error', function() {
         console.error('Error:', arguments)
         $('.status-webpanel').setStatus('warning', 'Errors Occured')
@@ -172,7 +161,7 @@ $(document).ready(function() {
         })
     }, 1000);
 
-    socket.on('process-info', function(data) {
+    socket.on('server-info', function(data) {
         if (!memory_chart || !cpu_chart) return;
         var now = Date.now() / 1000
         cpu_chart.push([{time: now, y: data.cpu}])
@@ -182,8 +171,23 @@ $(document).ready(function() {
     $('.server-start').click(function() { socket.emit('server-start', {}) })
     $('.server-stop').click(function() { socket.emit('server-stop', {}) })
     $('.server-restart').click(function() {
+        function handler(data) {
+            if (data.state == 'stopped') {
+                setTimeout(function() {
+                    data.state = 'Restarting'
+                    setServerState(data)
+                }, 10);
+
+                setTimeout(function() {
+                    socket.emit('server-start', {})
+                }, 1000)
+
+                socket.removeListener('server-state', handler)
+            }
+        }
+
+        socket.on('server-state', handler)
         socket.emit('server-stop', {})
-        socket.on('server-state', function(data) { reconnectOnStatus(socket, data); })
     })
 
     $('nav li').click(function() {
@@ -209,7 +213,7 @@ $(document).ready(function() {
         if (socket.socket.connected) {
             socket.emit('request-server-info', {})
         }
-    }, 15000)
+    }, 1000)
 
     setInterval(updateUptime, 30000)
 })
