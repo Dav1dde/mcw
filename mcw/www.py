@@ -82,9 +82,9 @@ class MinecraftAppMiddleware(object):
         self.send_server_info()
 
     def send_server_state(self):
-        start_time = self.minecraft.process
-        if start_time is not None:
-            start_time = start_time.create_time()
+        start_time = None
+        if self.minecraft.process is not None:
+            start_time = self.minecraft.process.create_time()
 
         self.socketio.emit('server-state',  {
             'state': self.minecraft.state,

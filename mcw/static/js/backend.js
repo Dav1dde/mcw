@@ -116,10 +116,19 @@ function timeFromMsecs(msec) {
 }
 
 function updateUptime() {
+    status = 'warning'
+    message = '?'
+
     var time = $('.status-uptime').data('time')
-    if (!time) { return }
-    var diff = timeFromMsecs(Date.now() - parseInt(time))
-    $('.status-uptime').setStatus('success', diff.string)
+    if (time) {
+        var diff = timeFromMsecs(Date.now() - parseInt(time))
+        if (diff.seconds >= 1) {
+            status = 'success'
+            message = diff.string
+        }
+    }
+
+    $('.status-uptime').setStatus(status, message)
 }
 
 
