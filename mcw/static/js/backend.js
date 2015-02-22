@@ -218,22 +218,17 @@ $(document).ready(function() {
                 data: genHistory(1, 1, Date.now() / 1000),
                 axes: ['left', 'bottom', 'right'],
                 //windowSize: 10,
-                windowSize: 100,
+                windowSize: 300,
                 queueSize: 1,
                 historySize: 1,
-                ticks: { time: 15, left: 5, right: 10},
+                ticks: { time: 30, left: 5, right: 10 },
                 tickFormats: {
                     left: Epoch.Formats.percent,
                     right: Epoch.Formats.percent,
                     top: Epoch.Formats.seconds,
                     bottom: Epoch.Formats.seconds
                 },
-                margins: {
-                    top: 25,
-                    right: 80,
-                    bottom: 25,
-                    left: 80
-                },
+                margins: { top: 25, right: 80, bottom: 25, left: 80 },
             }
 
             options.range = cpuRange
