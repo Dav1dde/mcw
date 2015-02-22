@@ -38,6 +38,58 @@ function genHistory(entries, layers, now) {
     return history
 }
 
+function get1024Base(num) {
+    var r = 1;
+    var i = 0;
+    for (; (r*1024) < num; i++) {
+        r = r * 1024;
+    }
+
+    return i;
+}
+
+function roundTo1024(num, cap, rfunc) {
+    if (num <= 0 || !num) { return num; }
+
+    var r = Math.pow(1024, Math.min(cap, get1024Base(num)))
+    return rfunc(num / r) * r;
+}
+
+function myRound(to, func) {
+    return function(num) {
+        return func(num / to) * to
+    }
+}
+
+function memoryRange(min, max) {
+    if (min == 0 && max == 0) return [0, 1];
+    return [
+        roundTo1024(min, 2, myRound(Math.pow(10, get1024Base(min)), Math.floor)),
+        roundTo1024(max, 2, myRound(Math.pow(10, get1024Base(max)), Math.ceil))
+    ];
+}
+
+function memoryTicks(num) {
+    function func(min, max) {
+        //min = roundTo1024(min, 2, Math.floor)
+        //max = roundTo1024(max, 2, Math.ceil)
+
+        var interval = (max-min)/(num - 1)
+        var ret = []
+        for (i = min; i <= max; i += interval) {
+            ret.push(Math.round(i))
+        }
+
+        return ret;
+    }
+
+    return func
+}
+
+function cpuRange(min, max) {
+    return [0, max];
+}
+
 function timeFromMsecs(msec) {
     var hh = Math.floor(msec / 1000 / 60 / 60)
     msec -= hh * 1000 * 60 * 60
@@ -55,7 +107,8 @@ function timeFromMsecs(msec) {
 
     var s = ''
     if (dd > 0) { s += dd + ' day' + plural_s(dd) }
-    if (hh > 0 || dd > 0) { s += ', ' + hh + ' hour' + plural_s(hh) }
+    if (s) { s += ', ' }
+    if (hh > 0 || dd > 0) { s += hh + ' hour' + plural_s(hh) }
     if (s) { s += ' and ' }
     s += mm + ' minute' + plural_s(mm)
 
@@ -151,20 +204,40 @@ $(document).ready(function() {
     var memory_chart;
     function createCharts() {
         function _createCharts() {
-            var OPTIONS = {
+            var options = {
                 type: 'time.line',
                 data: genHistory(1, 1, Date.now() / 1000),
                 axes: ['left', 'bottom', 'right'],
+                //windowSize: 10,
                 windowSize: 100,
-                queueSize: 100,
-                ticks: { time: 15, left: 5, right: 10}
+                queueSize: 1,
+                historySize: 1,
+                ticks: { time: 15, left: 5, right: 10},
+                tickFormats: {
+                    left: Epoch.Formats.percent,
+                    right: Epoch.Formats.percent,
+                    top: Epoch.Formats.seconds,
+                    bottom: Epoch.Formats.seconds
+                },
+                margins: {
+                    top: 25,
+                    right: 80,
+                    bottom: 25,
+                    left: 80
+                },
             }
 
-            cpu_chart = $('#cpu-graph').epoch(OPTIONS)
-            memory_chart = $('#memory-graph').epoch(OPTIONS)
+            options.range = cpuRange
+            cpu_chart = $('#cpu-graph').epoch(options)
+            options.tickFormats.left = Epoch.Formats.bytes
+            options.tickFormats.right = Epoch.Formats.bytes
+            options.ticks.left = memoryTicks(5)
+            options.ticks.right = memoryTicks(10)
+            options.range = memoryRange
+            memory_chart = $('#memory-graph').epoch(options)
         }
 
-        setTimeout(_createCharts, 500)
+        setTimeout(_createCharts, 1000)
         $('body > nav > ul > li > a[href="#overview"]').unbind('click', createCharts)
     }
     $('body > nav > ul > li > a[href="#overview"]').click(createCharts)
@@ -172,8 +245,9 @@ $(document).ready(function() {
     socket.on('server-info', function(data) {
         if (!memory_chart || !cpu_chart) return;
         var now = Date.now() / 1000
-        cpu_chart.push([{time: now, y: data.cpu}])
-        memory_chart.push([{time: now, y: data.memory / 1024 / 1024}])
+        cpu_chart.push([{time: now, y: data.cpu/100}])
+        memory_chart.push([{time: now, y: data.memory}])
+        //memory_chart.push([{time: now, y: 1.64 * 1024 * 1024 * 1024}])
     })
 
     $('.server-start').click(function() { socket.emit('server-start', {}) })
