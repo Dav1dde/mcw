@@ -198,10 +198,10 @@ $(document).ready(function() {
     socket.on('server-state', setServerState)
     socket.on('server-info', setServerInfo)
     socket.on('console-message', function(data) {
-        var color = data.type == 'stderr' ? 'red' : ''
+        var color = data.type == 'stderr' ? '<pre style="color: red">' : '<pre>'
 
         var atBottom = isAtBottom('.console');
-        $('.console').append($('<pre>').text(data.message).css('color', color))
+        $('.console').append(color + data.message + '</pre>')
         if (atBottom) {
             $('.console').scrollTop($('.console')[0].scrollHeight)
         }
