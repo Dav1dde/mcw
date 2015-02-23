@@ -6,6 +6,8 @@ import gevent
 
 
 class RsyncBackup(Backup):
+    EXTENSION = 'tar.xz'
+
     def create_backup(self, name, path):
         now = datetime.now()
         name = '{}.tar'.format(self.get_backup_name(name, now))

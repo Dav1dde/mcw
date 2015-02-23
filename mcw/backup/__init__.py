@@ -13,6 +13,8 @@ BackupJob = namedtuple('BackupJob', ['name', 'delta', 'num'])
 
 
 class Backup(object):
+    EXTENSION = None
+
     FORMAT = '%Y-%m-%dT%H:%M:%S'
     BACKUPS = [
         BackupJob('hourly', timedelta(hours=1), 6),
@@ -52,7 +54,7 @@ class Backup(object):
 
     @classmethod
     def collect_backups(cls, path):
-        files = os.path.join(path, 'backup-*-*.tar.xz')
+        files = os.path.join(path, 'backup-*-*.{0}'.format(cls.EXTENSION))
 
         backups = defaultdict(list)
         for backup in sorted(glob.glob(files)):
@@ -130,5 +132,5 @@ class Backup(object):
         to_delete = past[:max(0, len(past)-job.num)]
 
         for dt in to_delete:
-            name = '{}.tar.xz'.format(self.get_backup_name(job.name, dt))
+            name = '{0}.{1}'.format(self.get_backup_name(job.name, dt), self.EXTENSION)
             os.remove(os.path.join(self._scheduled, name))
