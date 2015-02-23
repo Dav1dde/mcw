@@ -165,8 +165,8 @@ class Minecraft(object):
 
         self._write('stop\n')
 
-    def wait(self):
-        self._process.wait()
+    def wait(self, timeout=None):
+        self._process.wait(timeout=timeout)
 
 
 class Spigot(Minecraft):
