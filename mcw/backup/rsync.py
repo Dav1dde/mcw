@@ -21,14 +21,51 @@ class RsyncBackup(object):
         BackupJob('monthly', timedelta(weeks=4), 2)
     ]
 
-    def __init__(self, minecraft, source, dest):
+    def __init__(self, minecraft, path, worldonly=True, world=None):
         self.minecraft = minecraft
-        self.source = source
-        self.dest = dest
+        self.path = path
+        self.worldonly = worldonly
+        self.world = world
+        if world is None or world.strip().lower() == '*guess*':
+            self.world = self.minecraft.server_properties['level-name']
+        self.source = self.minecraft.path
+
+        if not os.path.exists(self.source):
+            raise ValueError('Source folder for backups does not exist')
+
+        if not os.path.exists(self.path):
+            raise ValueError('Destination folder for backups does not exist')
+
+        self._last = os.path.join(self.path, 'server')
+        if not os.path.exists(self._last):
+            os.makedirs(self._last)
+        self._scheduled = os.path.join(self.path, 'scheduled')
+        if not os.path.exists(self._scheduled):
+            os.makedirs(self._scheduled)
+        self._user = os.path.join(self.path, 'user')
+        if not os.path.exists(self._user):
+            os.makedirs(self._user)
 
         self._pool = gevent.pool.Pool()
         self._in_backup = False
         self._processes = list()
+
+    @classmethod
+    def collect_backups(cls, path):
+        files = os.path.join(path, 'backup-*-*.tar.xz')
+
+        backups = defaultdict(list)
+        for backup in sorted(glob.glob(files)):
+            name = os.path.split(backup)[1]
+            try:
+                _, name, date = name.split('-', 2)
+                date = date.split('.', 1)[0]
+                date = datetime.strptime(date, cls.FORMAT)
+            except (ValueError, IndexError):
+                continue
+            backups[name].append(date)
+
+        return backups
 
     @property
     def is_idle(self):
@@ -37,17 +74,13 @@ class RsyncBackup(object):
         # not _in_backup and no process running
         return not self._in_backup and len(self._processes) == 0
 
-    def get_backup_name(self, job, dt=None):
+    def get_backup_name(self, name, dt=None):
         if dt is None:
             dt = datetime.now()
 
-        return 'backup-{}-{}'.format(job.name, dt.strftime(self.FORMAT))
+        return 'backup-{}-{}'.format(name, dt.strftime(self.FORMAT))
 
     def start(self, delay=600):
-        last = os.path.join(self.dest, 'server')
-        if not os.path.exists(last):
-            os.makedirs(last)
-
         def exc(gr):
             self._in_backup = False
 
@@ -57,19 +90,8 @@ class RsyncBackup(object):
 
     def run(self):
         self._in_backup = True
-        files = os.path.join(self.dest, 'backup-*-*.tar.xz')
 
-        backups = defaultdict(list)
-        for backup in sorted(glob.glob(files)):
-            name = os.path.split(backup)[1]
-            try:
-                _, type, date = name.split('-', 2)
-                date = date.split('.', 1)[0]
-                date = datetime.strptime(date, self.FORMAT)
-            except (ValueError, IndexError):
-                continue
-            backups[type].append(date)
-
+        backups = self.collect_backups(self._scheduled)
         for job in self.BACKUPS:
             past = backups.get(job.name, [])
             self.create_backup_if_required(job, past)
@@ -93,32 +115,41 @@ class RsyncBackup(object):
 
         if now - last > job.delta or force:
             # we make a new backup, add it to the past list
-            past.append(self.create_backup(job))
+            past.append(self.create_backup(job.name, self._scheduled))
             # only a maximum number of backups allowed, remove
             # too old backups
             self.remove_old_backups(job, past)
 
-    def create_backup(self, job):
-        last = os.path.join(self.dest, 'server')
+    def create_user_backup(self, name):
+        return self.create_backup(name, self._user)
+
+    def create_backup(self, name, path):
+        now = datetime.now()
+        name = '{}.tar'.format(self.get_backup_name(name, now))
+
         self.minecraft._write('save-all\nsave-off\n')
         # todo wait for server message instead of this sleep
         gevent.sleep(5)
         gevent.subprocess.call([
-            'rsync', '-a', '--del', '{}/'.format(self.source), last]
+            'rsync', '-a', '--del', '{}/'.format(self.source), self._last]
         )
         self.minecraft._write('save-on\nsave-all\n')
 
-        now = datetime.now()
-        name = '{}.tar'.format(self.get_backup_name(job, now))
+        parent = self._last
+        folder = self.world
+        if not self.worldonly:
+            parent = self.path
+            folder = 'server'
+
         p1 = gevent.subprocess.Popen(
             ['nice', '-n', '19', 'tar',
-             'cf', name, '-C', last, 'world', '--force-local'],
-            stdout=gevent.subprocess.PIPE, cwd=self.dest
+             'cf', name, '-C', parent, folder, '--force-local'],
+            stdout=gevent.subprocess.PIPE, cwd=path
         )
         p1.communicate()
         p2 = gevent.subprocess.Popen(
             ['nice', '-n', '19', 'xz', '-e9', name],
-            stdout=gevent.subprocess.PIPE, cwd=self.dest
+            stdout=gevent.subprocess.PIPE, cwd=path
         )
         self._processes.append(p2)
 
@@ -128,9 +159,7 @@ class RsyncBackup(object):
         to_delete = past[:max(0, len(past)-job.num)]
 
         for dt in to_delete:
-            name = '{}.tar.xz'.format(self.get_backup_name(job, dt))
-            path = os.path.join(self.dest, name)
-
-            os.remove(path)
+            name = '{}.tar.xz'.format(self.get_backup_name(job.name, dt))
+            os.remove(os.path.join(self._scheduled, name))
 
 

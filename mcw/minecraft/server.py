@@ -33,8 +33,14 @@ _SERVER_START_RE = re.compile(
 
 
 class Minecraft(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, path, jar, java='java',
+                 minmem='512M', maxmem='1024M', args=''):
+        self.path = path
+        self.jar = jar
+        self.java = java
+        self.minmem = minmem
+        self.maxmem = maxmem
+        self.args = args
 
         self._server_properties = None
         self._process = None
@@ -63,7 +69,7 @@ class Minecraft(object):
     def server_properties(self):
         if self._server_properties is None:
             self._server_properties = \
-                mcw.minecraft.local.server_properties(self.config['path'])
+                mcw.minecraft.local.server_properties(self.path)
 
         return self._server_properties
 
@@ -90,14 +96,14 @@ class Minecraft(object):
     def arguments(self):
         m = [
             '-server',
-            '-Xms{}'.format(self.config['minmem']),
-            '-Xmx{}'.format(self.config['maxmem'])
+            '-Xms{}'.format(self.minmem),
+            '-Xmx{}'.format(self.maxmem)
         ]
 
         if is_64bits:
             m.append('-d64')
 
-        m.extend(shlex.split(self.config.get('args', '')))
+        m.extend(shlex.split(self.args))
 
         return m
 
@@ -114,13 +120,13 @@ class Minecraft(object):
             raise ValueError("Server already running")
 
         cmd = self.arguments
-        cmd.insert(0, self.config['java'])
-        cmd.extend(['-jar', self.config['jar'], 'nogui'])
+        cmd.insert(0, self.java)
+        cmd.extend(['-jar', self.jar, 'nogui'])
 
         # clear stdin, so process doesn't get leftover commands
         flush_fd(sys.stdin)
         self._process = gevent.subprocess.Popen(
-            cmd, cwd=self.config['path'], universal_newlines=True,
+            cmd, cwd=self.path, universal_newlines=True,
             stdin=gevent.subprocess.PIPE, stdout=gevent.subprocess.PIPE,
             stderr=gevent.subprocess.PIPE
         )

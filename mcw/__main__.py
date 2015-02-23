@@ -1,15 +1,39 @@
 #!/usr/bin/env python2
 
+from mcw.www import create_intstance, MinecraftAppMiddleware
 from mcw.minecraft.server import Minecraft, Spigot, FTB
-from mcw.backup import RsyncBackup
+from mcw.backup.rsync import RsyncBackup
+from mcw.backup.dummy import DummyBackup
+from mcw.config import ConfigFile
+
+from gevent.wsgi import WSGIServer
 
 import signal
 import gevent
+import os.path
+import argparse
 
 
-_REQUIRED_KEYS = (
-    'type', 'java', 'jar', 'minmem', 'maxmem', 'path'
-)
+SERVER_TYPES = {
+    'minecraft': Minecraft,
+    'spigot': Spigot,
+    'ftb': FTB
+}
+
+
+def server_from_config(config):
+    config = dict(config)
+    Cls = SERVER_TYPES[config.pop('type').strip().lower()]
+
+    return Cls(config.pop('path'), config.pop('jar'), **config)
+
+
+def _argparse_filepath(path):
+    if not os.path.exists(path) or not os.path.isfile(path):
+        raise argparse.ArgumentError(
+            'Invalid path for config, {0}'.format(path)
+        )
+    return path
 
 
 def register_signal_handler(minecraft):
@@ -22,54 +46,45 @@ def register_signal_handler(minecraft):
 
 
 def main():
-    import configparser
-    import argparse
-
     parser = argparse.ArgumentParser('mcw')
     parser.add_argument(
         '--backup-delay', type=int, default=600
     )
     parser.add_argument(
-        'config', type=argparse.FileType('r'), help='Path to configfile'
-    )
-    parser.add_argument(
-        'name', help='Config section for this server'
+        'config', type=_argparse_filepath,
+        help='Path to configfile', metavar='FILE'
     )
     ns = parser.parse_args()
 
-    config = configparser.ConfigParser()
-    config.read_file(ns.config)
-    config = config[ns.name]
+    config = ConfigFile(ns.config)
 
-    cls = {
-        'minecraft': Minecraft,
-        'spigot': Spigot,
-        'ftb': FTB
-    }[config['type'].strip().lower()]
+    minecraft = server_from_config(config.server)
 
-    minecraft = cls(config)
-    backup = RsyncBackup(minecraft, config['path'], config['backup'])
-    backup.start(ns.backup_delay)
-
-    # register_signal_handler(minecraft)
+    backup = DummyBackup()
+    if config.backup.getboolean('enabled'):
+        backup = RsyncBackup(
+            minecraft, config.backup['path'],
+            worldonly=config.backup.getboolean('worldonly', fallback=True),
+            world=config.backup.get('world')
+        )
+        backup.start(ns.backup_delay)
 
     minecraft.start()
-    # minecraft.wait()
-    # quit when the last backup is done
-    # while not backup.is_idle:
-    #     gevent.sleep(0.5)
+    if not config.webpanel.getboolean('enabled'):
+        register_signal_handler(minecraft)
+        minecraft.wait()
+        # quit when the last backup is done
+        while not backup.is_idle:
+            gevent.sleep(0.5)
+        return
 
-    from gevent.wsgi import WSGIServer
-    from mcw.www import create_intstance, MinecraftAppMiddleware
-
-    app, socketio = create_intstance(config['secret'])
-    app.config.password = config['password']
-    # server = WSGIServer((config['host'], int(config['port'])), app)
-    # server.serve_forever()
+    app, socketio = create_intstance(config.webpanel['secret'])
+    app.config.password = config.webpanel['password']
 
     mw = MinecraftAppMiddleware(minecraft, app, socketio)
 
-    socketio.run(app, host=config['host'], port=int(config['port']))
+    socketio.run(app, host=config.webpanel['host'],
+                 port=int(config.webpanel['port']))
 
 
 if __name__ == '__main__':

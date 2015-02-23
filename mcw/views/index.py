@@ -8,7 +8,8 @@ index = Blueprint('index', __name__)
 
 MENUS = [
     ('overview', 'Overview', 'fa fa-line-chart', 'overview.html'),
-    ('console', 'Console', 'fa fa-terminal', 'console.html')
+    ('console', 'Console', 'fa fa-terminal', 'console.html'),
+    ('backups', 'Backups', 'fa fa-hdd-o', 'backups.html')
 ]
 
 @index.route('/')

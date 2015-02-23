@@ -13,7 +13,10 @@ def _get_type(val, *types):
 
 
 def _bool(val):
-    return val.lower() in ('yes', 'true', '1')
+    val = val.strip().lower()
+    if val not in ('yes', 'no', 'true', 'false'):
+        raise ValueError()
+    return val.lower() in ('yes', 'true')
 
 
 def server_properties(base_path):
