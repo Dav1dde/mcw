@@ -1,5 +1,4 @@
 function isAtBottom(element) {
-    element = $(element)
     return element.innerHeight() + element.scrollTop() >= element[0].scrollHeight
 }
 
@@ -197,13 +196,16 @@ $(document).ready(function() {
     socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
     socket.on('server-state', setServerState)
     socket.on('server-info', setServerInfo)
+    var _ERROR_MESSAGE = '<pre style="color: red"></pre>'
+    var _MESSAGE = '<pre></pre>'
     socket.on('console-message', function(data) {
-        var color = data.type == 'stderr' ? '<pre style="color: red">' : '<pre>'
+        var pre = data.type == 'stderr' ?  _ERROR_MESSAGE : _MESSAGE
+        var c = $('.console')
 
-        var atBottom = isAtBottom('.console');
-        $('.console').append(color + data.message + '</pre>')
+        var atBottom = isAtBottom(c);
+        c.append($(pre).text(data.message))
         if (atBottom) {
-            $('.console').scrollTop($('.console')[0].scrollHeight)
+            c.scrollTop($('.console')[0].scrollHeight)
         }
     });
 
