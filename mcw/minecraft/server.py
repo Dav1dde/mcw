@@ -94,6 +94,9 @@ class Minecraft(object):
 
     @property
     def arguments(self):
+        if self.args:
+            return shlex.split(self.args)
+
         m = [
             '-server',
             '-Xms{}'.format(self.minmem),
@@ -102,8 +105,6 @@ class Minecraft(object):
 
         if is_64bits:
             m.append('-d64')
-
-        m.extend(shlex.split(self.args))
 
         return m
 
@@ -167,26 +168,5 @@ class Minecraft(object):
 
     def wait(self, timeout=None):
         self._process.wait(timeout=timeout)
-
-
-class Spigot(Minecraft):
-    @property
-    def arguments(self):
-        m = Minecraft.arguments.fget(self)
-        m.append('-XX:MaxPermSize=128M')
-        return m
-
-
-class FTB(Minecraft):
-    @property
-    def arguments(self):
-        m = Minecraft.arguments.fget(self)
-        m.extend([
-            '-XX:PermSize=256m', '-XX:+UseParNewGC',
-            '-XX:+CMSIncrementalPacing', '-XX:+CMSClassUnloadingEnabled',
-            '-XX:ParallelGCThreads=2', '-XX:MinHeapFreeRatio=5',
-            '-XX:MaxHeapFreeRatio=10'
-        ])
-        return m
 
 

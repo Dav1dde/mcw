@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 from mcw.www import create_intstance, MinecraftAppMiddleware
-from mcw.minecraft.server import Minecraft, Spigot, FTB
+from mcw.minecraft.server import Minecraft
 from mcw.backup.rsync import RsyncBackup
 from mcw.backup.dummy import DummyBackup
 from mcw.config import ConfigFile
@@ -14,18 +14,8 @@ import os.path
 import argparse
 
 
-SERVER_TYPES = {
-    'minecraft': Minecraft,
-    'spigot': Spigot,
-    'ftb': FTB
-}
-
-
 def server_from_config(config):
-    config = dict(config)
-    Cls = SERVER_TYPES[config.pop('type').strip().lower()]
-
-    return Cls(config.pop('path'), config.pop('jar'), **config)
+    return Minecraft(config.pop('path'), config.pop('jar'), **config)
 
 
 def _argparse_filepath(path):
