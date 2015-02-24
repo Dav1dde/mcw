@@ -188,6 +188,11 @@ article div.backup-table-outer {
     width: 150px;
 }
 
+.backup-alerts i {
+    margin-right: 10px;
+}
+
 .backup-create input {
     width: calc(100% - 250px);
 }​
+

@@ -5,9 +5,13 @@ import shelve
 import glob
 import os
 
+from werkzeug import secure_filename
 import gevent.subprocess
 import gevent.pool
 import gevent
+
+from mcw.signals import on_backup_started, on_backup_stopped, on_backup_deleted
+from mcw.utils.store import JsonStore
 
 
 BackupJob = namedtuple('BackupJob', ['name', 'delta', 'num'])
@@ -44,7 +48,7 @@ class Backup(object):
         if not os.path.exists(self._last):
             os.makedirs(self._last)
 
-        self.metadata = shelve.open(os.path.join(path, 'metadata'))
+        self.metadata = JsonStore(os.path.join(path, 'metadata.json'))
 
         self._pool = gevent.pool.Pool()
         self._in_backup = False
@@ -87,14 +91,30 @@ class Backup(object):
         for type, backups in self.collect_backups(self.path).items():
             for backup in backups:
                 label = type
-                if self.metadata.has_key(backup.name.encode('utf-8')):
-                    label = self.metadata[backup.name.encode('utf-8')]
+                if backup.name in self.metadata:
+                    label = self.metadata[backup.name]
 
                 ret[type].append({
-                    'date': backup.date, 'size': backup.size, 'label': label
+                    'name': backup.name, 'date': backup.date,
+                    'size': backup.size, 'label': label
                 })
-
         return ret
+
+    def get_label(self, name):
+        if name in self.metadata:
+            return self.metadata[name]
+        return None
+
+    def delete_backup(self, name):
+        if not name.endswith(self.EXTENSION):
+            raise ValueError('invalid name')
+
+        names = os.listdir(self.path)
+        if name not in names:
+            raise KeyError('backup does not exist')
+
+        os.remove(os.path.join(self.path, name))
+        on_backup_deleted.send(self, name=name)
 
     def start(self, delay=600):
         def exc(gr):
@@ -137,15 +157,16 @@ class Backup(object):
             self.remove_old_backups(job, past)
 
     def create_user_backup(self, label):
-        time, name = self.create_backup('user', self._user)
-        self.metadata[name.encode('utf-8')] = label
+        time, name = self.create_backup('user', label)
 
-    def create_backup(self, name):
+    def create_backup(self, type, label=None):
         raise NotImplementedError()
 
     def remove_old_backups(self, job, past):
         to_delete = past[:max(0, len(past)-job.num)]
 
         for dt in to_delete:
-            name = '{0}.{1}'.format(self.get_backup_name(job.name, dt), self.EXTENSION)
+            name = '{0}.{1}'.format(
+                self.get_backup_name(job.name, dt), self.EXTENSION
+            )
             os.remove(os.path.join(self._scheduled, name))

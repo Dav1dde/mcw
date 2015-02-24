@@ -1,5 +1,6 @@
-from mcw.backup import Backup
+from mcw.backup import Backup, on_backup_started, on_backup_stopped
 from datetime import datetime
+import os.path
 
 import gevent.subprocess
 import gevent
@@ -8,9 +9,12 @@ import gevent
 class RsyncBackup(Backup):
     EXTENSION = 'tar.xz'
 
-    def create_backup(self, name):
+    def create_backup(self, type, label=None):
         now = datetime.now()
-        name = '{}.tar'.format(self.get_backup_name(name, now))
+        name = '{}.tar'.format(self.get_backup_name(type, now))
+        final_name = '{}.xz'.format(name)
+
+        on_backup_started.send(self, type=type, name=final_name, label=label)
 
         self.minecraft._write('save-all\nsave-off\n')
         # todo wait for server message instead of this sleep
@@ -37,5 +41,17 @@ class RsyncBackup(Backup):
             stdout=gevent.subprocess.PIPE, cwd=self.path
         )
         self._processes.append(p2)
+
+        if label is not None:
+            self.metadata[final_name] = label
+
+        def stopped_event():
+            p2.wait()
+            on_backup_stopped.send(
+                self, type=type, name=final_name, label=label, date=now,
+                size=os.path.getsize(os.path.join(self.path, final_name))
+            )
+
+        self._pool.spawn(stopped_event)
 
         return (now, name)

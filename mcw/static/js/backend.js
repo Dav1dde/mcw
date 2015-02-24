@@ -6,6 +6,10 @@ String.prototype.capitalize = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
+String.prototype.b64id = function() {
+    return btoa(this).slice(0, this.length-2)
+}
+
 jQuery.fn.extend({
     setStatus: function(type, text) {
         if (typeof text == 'undefined') {
@@ -140,18 +144,19 @@ function setServerState(data) {
         $('.server-start').prop('disabled', true)
         $('.server-stop').prop('disabled', false)
         $('.server-restart').prop('disabled', false)
+        $('.backup-new').prop('disabled', false)
     } else if (data.state == 'stopped') {
         $('.status-server').setStatus('danger', 'Stopped')
         $('.server-start').prop('disabled', false)
         $('.server-stop').prop('disabled', true)
         $('.server-restart').prop('disabled', true)
-
-        $('.status-uptime').setStatus('warning')
+        $('.backup-new').prop('disabled', false)
     } else {
         $('.status-server').setStatus('warning', data.state.capitalize())
         $('.server-start').prop('disabled', true)
         $('.server-stop').prop('disabled', true)
         $('.server-restart').prop('disabled', true)
+        $('.backup-new').prop('disabled', true)
     }
 }
 
@@ -163,53 +168,21 @@ function setServerInfo(data) {
     }
 }
 
+
+_HTML_BACKUP_BTNS = '<a class="backup-delete" href="javascript:void(0);"><i class="fa fa-times-circle"></i></a>'
+_HTML_BACKUP_EMPTY = '<tr class="no-sort"><td style="color: red">No backups found</td><td></td><td></td><td></td></tr>'
+_TYPES_SORT = {
+    user: 0,
+    monthly: 0,
+    weekly: 1,
+    daily: 2,
+    hourly: 3
+}
+
+
 $(document).ready(function() {
-    /*
-    $('.console').resizable({
-        handles: 's',
-        stop: function(event, ui) {
-            $(this).css('width', '');
-        }
-    });
-    */
-
-    function resize() {
-        $('body > nav').css('height', Math.max($(document).height(), $(window).height()) - 100 + 'px');
-    }
-    $(window).resize(resize);
-    resize();
-
-    var socket = io.connect('/main');
-
-    socket.on('error', function() {
-        console.error('Error:', arguments)
-        $('.status-webpanel').setStatus('warning', 'Errors Occured')
-    });
-    socket.on('message', function() { console.log('Unhandled message:', arguments) });
-
-    socket.on('connecting',       function() { $('.status-webpanel').setStatus('danger', 'Connecting')          })
-    socket.on('reconnecting',     function() { $('.status-webpanel').setStatus('danger', 'Reconnecting')        })
-    socket.on('connect_failed',   function() { $('.status-webpanel').setStatus('danger', 'Connection Failed')   })
-    socket.on('reconnect_failed', function() { $('.status-webpanel').setStatus('danger', 'Reconnecting Failed') })
-    socket.on('disconnect',       function() { $('.status-webpanel').setStatus('danger', 'Disconnected')        })
-
-    socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
-    socket.on('server-state', setServerState)
-    socket.on('server-info', setServerInfo)
-    var _ERROR_MESSAGE = '<pre style="color: red"></pre>'
-    var _MESSAGE = '<pre></pre>'
-    socket.on('console-message', function(data) {
-        var pre = data.type == 'stderr' ?  _ERROR_MESSAGE : _MESSAGE
-        var c = $('.console')
-
-        var atBottom = isAtBottom(c);
-        c.append($(pre).text(data.message))
-        if (atBottom) {
-            c.scrollTop($('.console')[0].scrollHeight)
-        }
-    });
-
-    var now = Date.now() / 1000;
+    var tblsort_schedule = new Tablesort(document.getElementById('backup-schedule'))
+    var tblsort_user = new Tablesort(document.getElementById('backup-user'))
 
     var cpu_chart;
     var memory_chart;
@@ -248,12 +221,116 @@ $(document).ready(function() {
     }
     $('body > nav > ul > li > a[href="#overview"]').click(createCharts)
 
+    function resize() {
+        $('body > nav').css('height', Math.max($(document).height(), $(window).height()) - 100 + 'px');
+    }
+    $(window).resize(resize);
+    resize();
+
+    var socket = io.connect('/main');
+
+    socket.on('error', function() {
+        console.error('Error:', arguments)
+        $('.status-webpanel').setStatus('warning', 'Errors Occured')
+    });
+    socket.on('message', function() { console.log('Unhandled message:', arguments) });
+
+    socket.on('connecting',       function() { $('.status-webpanel').setStatus('danger', 'Connecting')          })
+    socket.on('reconnecting',     function() { $('.status-webpanel').setStatus('danger', 'Reconnecting')        })
+    socket.on('connect_failed',   function() { $('.status-webpanel').setStatus('danger', 'Connection Failed')   })
+    socket.on('reconnect_failed', function() { $('.status-webpanel').setStatus('danger', 'Reconnecting Failed') })
+    socket.on('disconnect',       function() { $('.status-webpanel').setStatus('danger', 'Disconnected')        })
+
+    socket.on('welcome', function(data) { $('.status-webpanel').setStatus('success', 'Connected') });
+    socket.on('server-state', setServerState)
+    socket.on('server-info', setServerInfo)
+    var _ERROR_MESSAGE = '<pre style="color: red"></pre>'
+    var _MESSAGE = '<pre></pre>'
+    socket.on('console-message', function(data) {
+        var pre = data.type == 'stderr' ?  _ERROR_MESSAGE : _MESSAGE
+        var c = $('.console')
+
+        var atBottom = isAtBottom(c);
+        c.append($(pre).text(data.message))
+        if (atBottom) {
+            c.scrollTop($('.console')[0].scrollHeight)
+        }
+    });
+
     socket.on('server-info', function(data) {
         if (!memory_chart || !cpu_chart) return;
         var now = Date.now() / 1000
         cpu_chart.push([{time: now, y: data.cpu/100}])
         memory_chart.push([{time: now, y: data.memory}])
         //memory_chart.push([{time: now, y: 1.64 * 1024 * 1024 * 1024}])
+    })
+
+    socket.on('backup-started', function(data) {
+        console.log(data)
+        var text = data.type.capitalize() + ' backup in progress'
+        if (data.label) {
+            text += ': ' + data.label
+        } else {
+            text += '.'
+        }
+
+        $('<div class="alert alert-success" role="alert"></div>')
+            .attr('id', data.name.b64id())
+            .text(text)
+            .prepend($('<i class="fa fa-cog fa-spin"></i>'))
+            .appendTo('.backup-alerts')
+
+        if ($('.status-backup').length == 0) {
+            $('<label class="label status-backup label-success">Backup in progress</label>')
+                .data('num', 1)
+                .appendTo($('.statusbar'))
+        } else {
+            $('.status-backup').data().num++
+        }
+    })
+    socket.on('backup-stopped', function(data) {
+        console.log(data)
+        $('#' + data.name.b64id()).remove()
+
+        var table = data.type == 'user' ? $('#backup-user tbody') : $('#backup-schedule tbody')
+
+        var date = $('<td></td>').text(data.datestr).attr('data-sort', data.time)
+        var label = $('<td></td>').text(data.label || data.type)
+        if (data.type != 'user') {
+            label.attr('data-sort',  _TYPES_SORT[data.type] + '.' + (data.time | 0))
+        }
+        var size = $('<td></td>').text(Epoch.Formats.bytes(data.size)).attr('data-sort', data.size)
+        var btn = $('<td></td>').html(_HTML_BACKUP_BTNS)
+        btn.find('.backup-delete').click(backup_delete)
+
+        var tr = $('<tr></tr>')
+            .append(date)
+            .append(label)
+            .append(size)
+            .append(btn)
+            .data('name', data.name)
+            .appendTo(table)
+
+        table.find('.no-sort').remove()
+        if ($('.status-backup').data('num') > 1) {
+            $('.status-backup').data().num--;
+        } else {
+            $('.status-backup').remove()
+        }
+
+        tblsort_schedule.refresh()
+        tblsort_user.refresh()
+    })
+    socket.on('backup-deleted', function(data) {
+        $('.backup-table-outer tr').each(function() {
+            if ($(this).data('name') == data.name) {
+                if ($(this).parent().children('tr').length == 1) {
+                    $(this).parent().append(_HTML_BACKUP_EMPTY)
+                }
+
+                $(this).remove()
+            }
+        })
     })
 
     $('.server-start').click(function() { socket.emit('server-start', {}) })
@@ -277,6 +354,25 @@ $(document).ready(function() {
         socket.on('server-state', handler)
         socket.emit('server-stop', {})
     })
+
+    $('.backup-new').click(function() {
+        var input = $(this).parent().children('input')
+        socket.emit('backup-new', {label: input.val()})
+        input.val('')
+    })
+
+    function backup_delete() {
+        var parent = $(this).parent().parent()
+        var msg = ''
+        parent.children('td:nth-child(-n+3)').each(function() { msg += '\n' + $(this).text() })
+        var really = confirm('Are you sure you want to delete this backup? This cannot be undone!\n'+msg);
+
+        if (really) {
+            console.log('do it', parent.data('name'))
+            socket.emit('backup-delete', {name: parent.data('name')})
+        }
+    }
+    $('.backup-delete').click(backup_delete)
 
     $('body > nav > ul > li > a').click(function(event) {
         var id = $(this).attr('href')
@@ -313,10 +409,6 @@ $(document).ready(function() {
             $(this).val('')
         }
     })
-
-    var tblsort_schedule = new Tablesort(document.getElementById('backup-schedule'))
-    var tblsort_user = new Tablesort(document.getElementById('backup-user'))
-
 
     setInterval(function() {
         if (socket.socket.connected) {
