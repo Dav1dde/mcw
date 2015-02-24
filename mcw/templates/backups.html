@@ -14,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% set isempty = True %}
+                {% set notempty = [] %}
                 {% for type in ['monthly', 'weekly', 'daily', 'hourly'] %}
                 {% set outer_loop = loop %}
                 {% for backup in backups[type] %}
@@ -24,10 +24,10 @@
                     <td data-sort="{{ backup.size }}">{{ backup.size | sizeof_fmt }}</td>
                     <td><a class="backup-delete" href="javascript:void(0);"><i class="fa fa-times-circle"></i></a></td>
                 </tr>
-                {% set isempty = False %}
+                {% if notempty.append(True) %} {% endif %}
                 {% endfor %}
                 {% endfor %}
-                {% if isempty %}
+                {% if not notempty %}
                 <tr class="no-sort"><td style="color: red">No backups found</td><td></td><td></td><td></td></tr>
                 {% endif %}
             </tbody>
