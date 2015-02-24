@@ -67,6 +67,9 @@ def main():
         '--backup-delay', type=int, default=600
     )
     parser.add_argument(
+        '--debug', action='store_true'
+    )
+    parser.add_argument(
         'config', type=_argparse_filepath,
         help='Path to configfile', metavar='FILE'
     )
@@ -94,10 +97,11 @@ def main():
             gevent.sleep(0.5)
         return
 
-    app, socketio = create_intstance(config.webpanel['secret'])
+    app, socketio, mw = create_intstance(
+        minecraft, backup, config.webpanel['secret']
+    )
     app.config.password = config.webpanel['password']
-
-    mw = MinecraftAppMiddleware(minecraft, app, socketio)
+    app.debug = ns.debug
 
     register_signal_handler(minecraft, socketio)
 

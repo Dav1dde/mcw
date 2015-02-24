@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 from datetime import datetime, timedelta
 import os.path
+import shelve
 import glob
 import os
 
@@ -10,6 +11,7 @@ import gevent
 
 
 BackupJob = namedtuple('BackupJob', ['name', 'delta', 'num'])
+BackupFile = namedtuple('BackupFile', ['name', 'date', 'size'])
 
 
 class Backup(object):
@@ -41,12 +43,8 @@ class Backup(object):
         self._last = os.path.join(self.path, 'server')
         if not os.path.exists(self._last):
             os.makedirs(self._last)
-        self._scheduled = os.path.join(self.path, 'scheduled')
-        if not os.path.exists(self._scheduled):
-            os.makedirs(self._scheduled)
-        self._user = os.path.join(self.path, 'user')
-        if not os.path.exists(self._user):
-            os.makedirs(self._user)
+
+        self.metadata = shelve.open(os.path.join(path, 'metadata'))
 
         self._pool = gevent.pool.Pool()
         self._in_backup = False
@@ -58,16 +56,24 @@ class Backup(object):
 
         backups = defaultdict(list)
         for backup in sorted(glob.glob(files)):
+            size = os.path.getsize(backup)
             name = os.path.split(backup)[1]
             try:
-                _, name, date = name.split('-', 2)
+                _, type, date = name.split('-', 2)
                 date = date.split('.', 1)[0]
                 date = datetime.strptime(date, cls.FORMAT)
             except (ValueError, IndexError):
                 continue
-            backups[name].append(date)
+            backups[type].append(BackupFile(name, date, size))
 
         return backups
+
+    @classmethod
+    def get_backup_name(cls, name, dt=None):
+        if dt is None:
+            dt = datetime.now()
+
+        return 'backup-{}-{}'.format(name, dt.strftime(cls.FORMAT))
 
     @property
     def is_idle(self):
@@ -76,11 +82,19 @@ class Backup(object):
         # not _in_backup and no process running
         return not self._in_backup and len(self._processes) == 0
 
-    def get_backup_name(self, name, dt=None):
-        if dt is None:
-            dt = datetime.now()
+    def get_backups(self):
+        ret = defaultdict(list)
+        for type, backups in self.collect_backups(self.path).items():
+            for backup in backups:
+                label = type
+                if self.metadata.has_key(backup.name.encode('utf-8')):
+                    label = self.metadata[backup.name.encode('utf-8')]
 
-        return 'backup-{}-{}'.format(name, dt.strftime(self.FORMAT))
+                ret[type].append({
+                    'date': backup.date, 'size': backup.size, 'label': label
+                })
+
+        return ret
 
     def start(self, delay=600):
         def exc(gr):
@@ -93,9 +107,9 @@ class Backup(object):
     def run(self):
         self._in_backup = True
 
-        backups = self.collect_backups(self._scheduled)
+        backups = self.collect_backups(self.path)
         for job in self.BACKUPS:
-            past = backups.get(job.name, [])
+            past = [b.date for b in backups.get(job.name, [])]
             self.create_backup_if_required(job, past)
 
         self._in_backup = False
@@ -117,15 +131,16 @@ class Backup(object):
 
         if now - last > job.delta or force:
             # we make a new backup, add it to the past list
-            past.append(self.create_backup(job.name, self._scheduled))
+            past.append(self.create_backup(job.name)[0])
             # only a maximum number of backups allowed, remove
             # too old backups
             self.remove_old_backups(job, past)
 
-    def create_user_backup(self, name):
-        return self.create_backup(name, self._user)
+    def create_user_backup(self, label):
+        time, name = self.create_backup('user', self._user)
+        self.metadata[name.encode('utf-8')] = label
 
-    def create_backup(self, name, path):
+    def create_backup(self, name):
         raise NotImplementedError()
 
     def remove_old_backups(self, job, past):

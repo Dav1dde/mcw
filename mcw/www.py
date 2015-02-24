@@ -1,10 +1,11 @@
-from flask import Flask, session, request
+from flask import Flask, session, request, g
 from flask.ext.socketio import SocketIO
 
 from mcw.signals import (
     on_starting, on_started, on_stopping, on_stopped,
     on_stdin_message, on_stdout_message, on_stderr_message
 )
+import mcw.util
 
 import time
 import gevent
@@ -106,15 +107,25 @@ class MinecraftAppMiddleware(object):
         }, namespace=self.namespace)
 
 
-def create_intstance(secret_key):
+def create_intstance(minecraft, backup, secret_key):
     app = Flask(__name__)
     app.secret_key = secret_key
 
     from mcw.views.index import index
     app.register_blueprint(index)
 
+    def before_request():
+        g.minecraft = minecraft
+        g.backup = backup
+    app.before_request(before_request)
+
+    app.jinja_env.filters['sizeof_fmt'] = mcw.util.sizeof_fmt
+    app.jinja_env.filters['mktime'] = lambda d: time.mktime(d.timetuple())
+
     socketio = SocketIO()
     socketio.init_app(app)
 
-    return (app, socketio)
+    mw = MinecraftAppMiddleware(minecraft, app, socketio)
+
+    return (app, socketio, mw)
 

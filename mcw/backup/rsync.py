@@ -8,7 +8,7 @@ import gevent
 class RsyncBackup(Backup):
     EXTENSION = 'tar.xz'
 
-    def create_backup(self, name, path):
+    def create_backup(self, name):
         now = datetime.now()
         name = '{}.tar'.format(self.get_backup_name(name, now))
 
@@ -29,13 +29,13 @@ class RsyncBackup(Backup):
         p1 = gevent.subprocess.Popen(
             ['nice', '-n', '19', 'tar',
              'cf', name, '-C', parent, folder, '--force-local'],
-            stdout=gevent.subprocess.PIPE, cwd=path
+            stdout=gevent.subprocess.PIPE, cwd=self.path
         )
         p1.communicate()
         p2 = gevent.subprocess.Popen(
             ['nice', '-n', '19', 'xz', '-e9', name],
-            stdout=gevent.subprocess.PIPE, cwd=path
+            stdout=gevent.subprocess.PIPE, cwd=self.path
         )
         self._processes.append(p2)
 
-        return now
+        return (now, name)

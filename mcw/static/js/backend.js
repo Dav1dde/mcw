@@ -174,7 +174,7 @@ $(document).ready(function() {
     */
 
     function resize() {
-        $('body > nav').css('height', $(window).height()-100 + 'px');
+        $('body > nav').css('height', Math.max($(document).height(), $(window).height()) - 100 + 'px');
     }
     $(window).resize(resize);
     resize();
@@ -313,6 +313,10 @@ $(document).ready(function() {
             $(this).val('')
         }
     })
+
+    var tblsort_schedule = new Tablesort(document.getElementById('backup-schedule'))
+    var tblsort_user = new Tablesort(document.getElementById('backup-user'))
+
 
     setInterval(function() {
         if (socket.socket.connected) {

@@ -12,12 +12,16 @@ MENUS = [
     ('backups', 'Backups', 'fa fa-hdd-o', 'backups.html')
 ]
 
+
 @index.route('/')
 def site_index():
     if not session.get('loggedin', False):
         return render_template('login.html')
 
-    return render_template('backend.html', menus=MENUS, default='overview')
+    return render_template(
+        'backend.html', menus=MENUS, default='overview',
+        backups=g.backup.get_backups()
+    )
 
 
 @index.route('/login', methods=['POST'])

@@ -1,0 +1,67 @@
+<article>
+    <h3 class="bb">Scheduled:</h3>
+    <div class="backup-table-outer">
+        <table width="100%" id="backup-schedule">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Label</th>
+                    <th>Size</th>
+                    <th class="no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for type in ['monthly', 'weekly', 'daily', 'hourly'] %}
+                {% set outer_loop = loop %}
+                {% for backup in backups[type] %}
+                <tr>
+                    <td data-sort="{{ backup.date|mktime }}">{{ backup.date.strftime('%c') }}</td>
+                    <td data-sort="{{ outer_loop.index }}.{{backup.date|mktime|int}}">{{ backup.label }}</td>
+                    <td data-sort="{{ backup.size }}">{{ backup.size | sizeof_fmt }}</td>
+                    <td><a class="backup-delete" href="javascript:void(0);"><i class="fa fa-times-circle"></i></a></td>
+                </tr>
+                {% else %}
+                <tr class="no-sort"><td style="color: red">No backups found</td><td></td><td></td><td></td></tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</article>
+
+<article>
+    <h3 class="bb">Custom:</h3>
+    <div class="backup-table-outer">
+        <table width="100%" id="backup-user">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Label</th>
+                    <th>Size</th>
+                    <th class="no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups['user'] %}
+                <tr>
+                    <td data-sort="{{ backup.date|mktime }}">{{ backup.date.strftime('%c') }}</td>
+                    <td data-sort="{{ outer_loop.index }}.{{backup.date|mktime|int}}">{{ backup.label }}</td>
+                    <td data-sort="{{ backup.size }}">{{ backup.size | sizeof_fmt }}</td>
+                    <td><a class="backup-delete" href="javascript:void(0);"><i class="fa fa-times-circle"></i></a></td>
+                </tr>
+                {% else %}
+                <tr class="no-sort"><td style="color: red">No backups found</td><td></td><td></td><td></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</article>
+
+<article>
+    <!--<h3 class="bb">Create Backup:</h3>-->
+    <div class="backup-create">
+        <label>Label:</label>
+        <input type="text">
+        <button class="btn btn-primary">Create Backup</button>
+    </div>
+</article>

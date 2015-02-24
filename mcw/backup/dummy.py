@@ -11,6 +11,9 @@ class DummyBackup(object):
     def is_idle(self):
         return True
 
+    def get_backups(self):
+        return {}
+
     def get_backup_name(self, name, dt=None):
         return ''
 

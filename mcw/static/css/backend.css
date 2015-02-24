@@ -1,4 +1,6 @@
-
+.bb {
+    border-bottom: 1px solid #111;
+}
 
 header {
     color: #dddddd;
@@ -117,7 +119,6 @@ article {
 article input {
     margin-top: 15px;
 
-    width: 100%;
     border: 0;
     border-top: 1px solid gray;
     border-bottom: 1px solid gray;
@@ -128,7 +129,65 @@ article input:focus {
     outline: none;
 }
 
+article input.command-input {
+    width: 100%;
+}
+
 #cpu-graph, #memory-graph {
     height: 200px;
     width: 100%;
 }
+
+article table th:nth-of-type(1) {
+    width: 250px;
+}
+
+article table th:nth-of-type(3) {
+    width: 120px;
+}
+
+article table th:nth-of-type(4) {
+    width: 80px;
+}
+
+article table tr td {
+    padding: 3px 0 3px 15px;
+}
+
+article table tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+article div.backup-table-outer {
+    margin: 10px 30px;
+}
+
+.backup-delete {
+    color: red;
+}
+
+.backup-delete:hover {
+    color: red;
+}
+
+.backup-delete:focus {
+    color: red;
+}
+
+.backup-create {
+    margin: 15px 0 0 30px;
+}
+
+.backup-create label {
+    display: inline-block;
+    width: 60px;
+}
+
+.backup-create button {
+    margin: -4px 0 0 10px;
+    width: 150px;
+}
+
+.backup-create input {
+    width: calc(100% - 250px);
+}​
