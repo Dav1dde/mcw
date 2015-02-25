@@ -169,4 +169,4 @@ class Backup(object):
             name = '{0}.{1}'.format(
                 self.get_backup_name(job.name, dt), self.EXTENSION
             )
-            os.remove(os.path.join(self._scheduled, name))
+            os.remove(os.path.join(self.path, name))
